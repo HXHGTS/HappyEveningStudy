@@ -1,0 +1,76 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.c'
+
+env:
+  BUILD_DIR: build
+  OUTPUT_NAME: EveningStudyManager
+  ZIP_NAME: EveningStudyManager-${{ github.sha }}.zip
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Create build directory
+      run: mkdir "$BUILD_DIR"
+
+    - name: Compile program
+      run: |
+        cl /nologo /Fe:"$BUILD_DIR\$OUTPUT_NAME.exe" /W4 /sdl main.c
+      shell: cmd
+
+    - name: Verify executable
+      run: |
+        if not exist "$BUILD_DIR\$OUTPUT_NAME.exe" (
+          echo "Executable not found!"
+          exit 1
+        )
+
+    - name: Copy config file
+      run: copy config.ini "$BUILD_DIR"
+
+    - name: Create ZIP package
+      run: |
+        Compress-Archive -Path "$BUILD_DIR\*" -DestinationPath "$ZIP_NAME"
+      shell: powershell
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-package
+        path: ${{ env.ZIP_NAME }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: release-package
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: "Build ${{ github.sha }}"
+        tag_name: build-${{ github.sha }}
+        body: "Automatic build of ${{ github.sha }}"
+        files: ${{ env.ZIP_NAME }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
