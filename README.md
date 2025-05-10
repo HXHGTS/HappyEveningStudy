@@ -1,7 +1,7 @@
 ## HappyEveningStudy
 
 <h1 align="center">
-  <img src="https://raw.githubusercontent.com/HXHGTS/HappyEveningStudy/refs/heads/main/HappyEveningStudy.ico" width="20%" height="20%">
+  <img src="https://raw.githubusercontent.com/HXHGTS/HappyEveningStudy/refs/heads/main/HappyEveningStudy.ico" width="10%" height="10%">
 </h1>
 
 
