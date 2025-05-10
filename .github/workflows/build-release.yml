@@ -49,10 +49,10 @@ jobs:
       shell: pwsh
       run: |
         $artifactDir = "${{ github.workspace }}/artifacts"
-        $configFile = "${{ github.workspace }}/config.ini"
+        # $configFile = "${{ github.workspace }}/config.ini"
         
         # 复制配置文件
-        Copy-Item $configFile -Destination $artifactDir
+        # Copy-Item $configFile -Destination $artifactDir
         
         # 创建ZIP包
         Compress-Archive -Path "$artifactDir/*" -DestinationPath "${{ env.ZIP_NAME }}"
