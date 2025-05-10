@@ -11,7 +11,7 @@ on:
 env:
   BUILD_DIR: build
   OUTPUT_NAME: EveningStudyManager
-  ZIP_NAME: EveningStudyManager-${{ github.sha }}.zip
+  ZIP_NAME: EveningStudyManager-${{ github.run_number }}.zip
 
 jobs:
   build:
@@ -27,51 +27,51 @@ jobs:
         arch: x64
 
     - name: Create build directory
-      run: mkdir "$BUILD_DIR"
+      run: mkdir "$Env:BUILD_DIR"
 
     - name: Compile program
-      run: |
-        cl /nologo /Fe:"$BUILD_DIR\$OUTPUT_NAME.exe" /W4 /sdl main.c
+      run: cl /nologo /Fe:"$Env:BUILD_DIR\$Env:OUTPUT_NAME.exe" /W4 /sdl main.c
       shell: cmd
 
     - name: Verify executable
-      run: |
-        if not exist "$BUILD_DIR\$OUTPUT_NAME.exe" (
-          echo "Executable not found!"
-          exit 1
-        )
+      run: dir "$Env:BUILD_DIR\$Env:OUTPUT_NAME.exe"
+      shell: cmd
 
     - name: Copy config file
-      run: copy config.ini "$BUILD_DIR"
+      run: copy config.ini "$Env:BUILD_DIR"
+      shell: cmd
 
     - name: Create ZIP package
-      run: |
-        Compress-Archive -Path "$BUILD_DIR\*" -DestinationPath "$ZIP_NAME"
+      run: Compress-Archive -Path "$Env:BUILD_DIR\*" -DestinationPath "$Env:ZIP_NAME"
       shell: powershell
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: release-package
         path: ${{ env.ZIP_NAME }}
 
   release:
     needs: build
-    runs-on: ubuntu-latest
-    if: success()
-
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      
     steps:
     - name: Download artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: release-package
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
-        name: "Build ${{ github.sha }}"
-        tag_name: build-${{ github.sha }}
-        body: "Automatic build of ${{ github.sha }}"
+        name: "Build v${{ github.run_number }}"
+        tag_name: v${{ github.run_number }}
+        body: |
+          Automatic build from:
+          - Commit: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          - Date: ${{ github.event.head_commit.timestamp }}
         files: ${{ env.ZIP_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
