@@ -136,7 +136,7 @@
     <ResourceCompile Include="HappyEveningStudy.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\Downloads\bitbug_favicon.ico" />
+    <Image Include="HappyEveningStudy.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
