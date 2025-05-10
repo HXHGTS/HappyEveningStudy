@@ -9,6 +9,7 @@ on:
       - '**.vcxproj'
       - '**.c'
       - '**.h'
+  workflow_dispatch:
 
 env:
   SOLUTION_NAME: HappyEveningStudy.sln
