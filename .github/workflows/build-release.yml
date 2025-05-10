@@ -7,7 +7,7 @@ on:
     paths:
       - '**.sln'
       - '**.vcxproj'
-      - '**.c'
+      - '**.cpp'
       - '**.h'
   workflow_dispatch:
 
@@ -15,7 +15,6 @@ env:
   SOLUTION_NAME: HappyEveningStudy.sln
   BUILD_CONFIG: Release
   PLATFORM: x64
-  OUTPUT_DIR: bin\$(BUILD_CONFIG)\$(PLATFORM)
   ZIP_NAME: HappyEveningStudy-${{ github.run_number }}.zip
 
 jobs:
@@ -35,23 +34,28 @@ jobs:
       run: nuget restore "${{ env.SOLUTION_NAME }}"
 
     - name: Build Solution
+      shell: pwsh
       run: |
+        $artifactDir = "${{ github.workspace }}/artifacts"
+        New-Item -Path $artifactDir -ItemType Directory -Force
+
         msbuild "${{ env.SOLUTION_NAME }}" `
           /p:Configuration=${{ env.BUILD_CONFIG }} `
           /p:Platform=${{ env.PLATFORM }} `
           /p:WindowsTargetPlatformVersion=10.0 `
-          /p:OutDir=$(Build.ArtifactStagingDirectory)\
+          /p:OutDir="$artifactDir/"
 
-    - name: Collect Artifacts
+    - name: Package artifacts
+      shell: pwsh
       run: |
-        mkdir package
-        copy "$(Build.ArtifactStagingDirectory)\*.exe" package
-        copy config.ini package
-        dir package /s
-
-    - name: Create ZIP
-      run: Compress-Archive -Path package\* -DestinationPath "${{ env.ZIP_NAME }}"
-      shell: powershell
+        $artifactDir = "${{ github.workspace }}/artifacts"
+        $configFile = "${{ github.workspace }}/config.ini"
+        
+        # 复制配置文件
+        Copy-Item $configFile -Destination $artifactDir
+        
+        # 创建ZIP包
+        Compress-Archive -Path "$artifactDir/*" -DestinationPath "${{ env.ZIP_NAME }}"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
