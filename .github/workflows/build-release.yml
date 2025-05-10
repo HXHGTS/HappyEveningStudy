@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '**.c'
+  workflow_dispatch:
 
 env:
   BUILD_DIR: build
