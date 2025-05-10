@@ -1,17 +1,21 @@
-name: Build and Release
+name: VS Build and Release
 
 on:
   push:
     branches:
       - main
     paths:
+      - '**.sln'
+      - '**.vcxproj'
       - '**.c'
-  workflow_dispatch:
+      - '**.h'
 
 env:
-  BUILD_DIR: build
-  OUTPUT_NAME: EveningStudyManager
-  ZIP_NAME: EveningStudyManager-${{ github.run_number }}.zip
+  SOLUTION_NAME: HappyEveningStudy.sln
+  BUILD_CONFIG: Release
+  PLATFORM: x64
+  OUTPUT_DIR: bin\$(BUILD_CONFIG)\$(PLATFORM)
+  ZIP_NAME: HappyEveningStudy-${{ github.run_number }}.zip
 
 jobs:
   build:
@@ -21,31 +25,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+    - name: Setup VS 2022
+      uses: microsoft/setup-msbuild@v3
       with:
-        arch: x64
+        vs-version: 17.0  # VS2022
 
-    - name: Create build directory
-      run: mkdir "$Env:BUILD_DIR"
+    - name: Restore NuGet packages
+      run: nuget restore "${{ env.SOLUTION_NAME }}"
 
-    - name: Compile program
-      run: cl /nologo /Fe:"$Env:BUILD_DIR\$Env:OUTPUT_NAME.exe" /W4 /sdl main.c
-      shell: cmd
+    - name: Build Solution
+      run: |
+        msbuild "${{ env.SOLUTION_NAME }}" `
+          /p:Configuration=${{ env.BUILD_CONFIG }} `
+          /p:Platform=${{ env.PLATFORM }} `
+          /p:WindowsTargetPlatformVersion=10.0 `
+          /p:OutDir=$(Build.ArtifactStagingDirectory)\
 
-    - name: Verify executable
-      run: dir "$Env:BUILD_DIR\$Env:OUTPUT_NAME.exe"
-      shell: cmd
+    - name: Collect Artifacts
+      run: |
+        mkdir package
+        copy "$(Build.ArtifactStagingDirectory)\*.exe" package
+        copy config.ini package
+        dir package /s
 
-    - name: Copy config file
-      run: copy config.ini "$Env:BUILD_DIR"
-      shell: cmd
-
-    - name: Create ZIP package
-      run: Compress-Archive -Path "$Env:BUILD_DIR\*" -DestinationPath "$Env:ZIP_NAME"
+    - name: Create ZIP
+      run: Compress-Archive -Path package\* -DestinationPath "${{ env.ZIP_NAME }}"
       shell: powershell
 
-    - name: Upload artifact
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: release-package
@@ -56,9 +63,9 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-      
+
     steps:
-    - name: Download artifact
+    - name: Download Artifact
       uses: actions/download-artifact@v4
       with:
         name: release-package
@@ -68,10 +75,6 @@ jobs:
       with:
         name: "Build v${{ github.run_number }}"
         tag_name: v${{ github.run_number }}
-        body: |
-          Automatic build from:
-          - Commit: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
-          - Date: ${{ github.event.head_commit.timestamp }}
         files: ${{ env.ZIP_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
